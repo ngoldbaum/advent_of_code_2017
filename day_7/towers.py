@@ -3,6 +3,7 @@ class Node:
         self.name = name
         self.weight = weight
         self.children = children
+        self.total_weight = weight
 
     def __repr__(self):
         repr = '%s (%s)' % (self.name, self.weight)
@@ -11,6 +12,7 @@ class Node:
                 [getattr(c, 'name', c) for c in self.children])
             repr += ' -> ' + child_str
         return repr
+
 
 with open('input', 'r') as f:
     text = f.readlines()
@@ -34,15 +36,40 @@ for node in nodes:
     if node.children is None:
         break
 
-child = node
+parent = node
 
 while True:
-    old_child = child
+    old_parent = parent
     for node in nodes:
-        if node.children is not None and child in node.children:
-            child = node
+        if node.children is not None and parent in node.children:
+            parent = node
             break
-    if old_child == child:
+    if old_parent == parent:
         break
 
-print(child)
+root = parent
+
+
+def process_child_weights(node):
+    if node.children is None:
+        return
+    for child in node.children:
+        process_child_weights(child)
+        node.total_weight += child.total_weight
+
+
+process_child_weights(root)
+
+
+def balance(node):
+    weights = [node.total_weight for node in node.children]
+    for i, w in enumerate(weights):
+        if weights.count(w) == 1:
+            if balance(node.children[i]):
+                print([c.weight for c in node.children])
+                print([c.total_weight for c in node.children])
+    if len(set(weights)) == 1:
+        return True
+
+
+balance(root)
