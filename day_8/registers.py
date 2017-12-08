@@ -24,8 +24,12 @@ if __name__ == "__main__":
     for r in registers:
         state[r] = 0
 
+    maxval = 0
+
     for i in instructions:
         if DISPATCH_TABLE[i[5]](state[i[4]], int(i[6])):
             state[i[0]] = DISPATCH_TABLE[i[1]](state[i[0]], int(i[2]))
+        maxval = max(maxval, max(state.values()))
 
     print(max(state.values()))
+    print(maxval)
