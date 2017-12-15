@@ -1,11 +1,17 @@
 class Layer:
-    def __init__(self, depth, range):
+    def __init__(self, depth, range, scanner_pos=None, scanner_step=None):
         self.depth = depth
         self.range = range
-        self.scanner_step = 1
+        if scanner_step is not None:
+            self.scanner_step = scanner_step
+        else:
+            self.scanner_step = 1
         self.occupied = False
         if self.range > 0:
-            self.scanner_pos = 0
+            if scanner_pos is not None:
+                self.scanner_pos = scanner_pos
+            else:
+                self.scanner_pos = 0
 
     def __str__(self):
         ret = str(self.depth) + ": "
@@ -40,14 +46,18 @@ class Layer:
 
 
 class Firewall:
-    def __init__(self, layer_info):
+    def __init__(self, layer_info, time=None):
         used_layers = [l[0] for l in layer_info]
         n_layers = max(used_layers) + 1
         self.layers = []
-        self.time = 0
+        if time is not None:
+            self.time = time
+        else:
+            self.time = 0
         for i in range(n_layers):
             if i in used_layers:
-                app = Layer(i, layer_info[used_layers.index(i)][1])
+                info = layer_info[used_layers.index(i)]
+                app = Layer(*info)
             else:
                 app = Layer(i, 0)
             self.layers.append(app)
@@ -61,16 +71,28 @@ class Firewall:
         for layer in self.layers:
             layer.step()
 
+    def layer_info(self):
+        layer_info = []
+        for layer in self.layers:
+            if layer.range > 0:
+                layer_info.append([layer.depth, layer.range,
+                                   layer.scanner_pos, layer.scanner_step])
+        return layer_info
+
     def run(self):
-        severity = 0
+        first = True
+        layer_info = None
         for layer in self.layers:
             layer.occupied = True
             if layer.caught():
-                severity += layer.depth * layer.range
+                return layer_info, False
             self.step()
+            if first:
+                layer_info = self.layer_info()
+                first = False
             self.time += 1
             layer.occupied = False
-        return severity
+        return layer_info, True
 
 
 if __name__ == "__main__":
@@ -81,5 +103,18 @@ if __name__ == "__main__":
     text = [t.strip().split(': ') for t in text]
     layer_info = [[int(t[0]), int(t[1])] for t in text]
 
-    fw = Firewall(layer_info)
-    print(fw.run())
+    state = layer_info
+    test_time = 0
+
+    while True:
+        if test_time % 1000 == 0:
+            print(test_time)
+        fw = Firewall(state, test_time)
+        state, success = fw.run()
+        if success:
+            print(test_time)
+            break
+        if state is None:
+            fw.step()
+            state = fw.layer_info()
+        test_time += 1
